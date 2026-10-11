@@ -164,6 +164,7 @@ Success Response for Multiply:
     }
 
 Success Response for Average:
+
     {
         "average": <double>,
         "count": <int>,

@@ -78,23 +78,33 @@ class SockClient {
             json.put("str1", str1);
             json.put("string2", str2);
             break;
+
           case 4:
-            System.out.println("Choose calculate many, enter integers separated by commas (example: 1,2,3):");
-            String input = scanner.nextLine();
-
-            // creates an array of integars called numList
-            JSONArray numList = new JSONArray();
-            for (String value : input.split(",")) {
-              numList.put(Integer.parseInt(value.trim()));
-            }
-
             System.out.println("Choose operation: add, multiply, average");
             String operation = scanner.nextLine().trim();
+
+            System.out.println("Enter integers separated by commas (example: 1,2,3):");
+            String input = scanner.nextLine();
+
+            String[] values = input.trim().isEmpty() ? new String[0] : input.split(",");
+
+            JSONArray numList = new JSONArray();
+
+            for (String value : values) {
+              String trimmedValue = value.trim();
+              try {
+                numList.put(Integer.parseInt(trimmedValue));
+              } catch (NumberFormatException e) {
+                // Preserve invalid values so the server can validate them.
+                numList.put(trimmedValue);
+              }
+            }
 
             json.put("type", "calculatemany");
             json.put("numList", numList);
             json.put("operation", operation);
             break;
+
           // TODO: implement currency (5) or playlist (6) for Part C
         }
         if (!requesting) {
@@ -118,8 +128,7 @@ class SockClient {
 
           if (type.equals("echo")) {
             System.out.println(res.getString("echo"));
-          } 
-          else if (type.equals("calculatemany")) {
+          } else if (type.equals("calculatemany")) {
             String operation = res.getString("operation");
 
             System.out.println("Operation: " + operation);
@@ -134,6 +143,9 @@ class SockClient {
                 break;
               case "average":
                 System.out.println("Average: " + res.getDouble("average"));
+                break;
+              default:
+                System.out.println("Unknown CalculateMany Operation...");
                 break;
             }
 
