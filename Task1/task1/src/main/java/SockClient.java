@@ -40,7 +40,7 @@ class SockClient {
       boolean requesting = true;
       while (requesting) {
         System.out.println(
-            "What would you like to do: 1 - echo, 2 - add, 3 - string concatenation, 4 - calculate many, 0 - quit");
+            "What would you like to do: 1 - echo, 2 - add, 3 - string concatenation, 4 - calculate many, 5 - playlist manager, 0 - quit");
         Scanner scanner = new Scanner(System.in);
         int choice = Integer.parseInt(scanner.nextLine());
         // You can assume the user put in a correct input, you do not need to handle
@@ -105,7 +105,30 @@ class SockClient {
             json.put("operation", operation);
             break;
 
-          // TODO: implement currency (5) or playlist (6) for Part C
+          case 5:
+            System.out.println("Playlist Manager");
+            System.out.println("Choose action: add, remove, list, clear");
+            String action = scanner.nextLine().trim().toLowerCase();
+
+            json.put("type", "playlist");
+            json.put("action", action);
+
+            if (action.equals("add")) {
+              System.out.println("Enter song title:");
+              String song = scanner.nextLine();
+              System.out.println("Enter artist name:");
+              String artist = scanner.nextLine();
+
+              json.put("song", song);
+              json.put("artist", artist);
+
+            } else if (action.equals("remove")) {
+              System.out.println("Enter song title to remove:");
+              String song = scanner.nextLine();
+
+              json.put("song", song);
+            }
+            break;
         }
         if (!requesting) {
           continue;
@@ -152,10 +175,33 @@ class SockClient {
                 System.out.println("Unknown CalculateMany Operation...");
                 break;
             }
+          } else if (type.equals("playlist")) {
+            String action = res.getString("action");
 
+            if (action.equals("add") || action.equals("remove")) {
+              System.out.println(res.getString("message"));
+              System.out.println("Songs in playlist: " + res.getInt("songCount"));
+
+            } else if (action.equals("list")) {
+              JSONArray songs = res.getJSONArray("songs");
+              System.out.println("Playlist (" + res.getInt("songCount") + " songs):");
+
+              if (songs.length() == 0) {
+                System.out.println("Playlist is empty.");
+              }
+
+              for (int j = 0; j < songs.length(); j++) {
+                JSONObject song = songs.getJSONObject(j);
+                System.out.println((j + 1) + ". " + song.getString("song") + " - " + song.getString("artist"));
+              }
+
+            } else if (action.equals("clear")) {
+              System.out.println(res.getString("message"));
+            }
           } else {
             System.out.println(res.getInt("result"));
           }
+
         } else {
           System.out.println(res.getString("message"));
         }

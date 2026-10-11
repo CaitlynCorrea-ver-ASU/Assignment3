@@ -2,7 +2,7 @@ import mysteryservice.MysteryService;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
+import java.util.ArrayList;
 
 import java.net.*;
 import java.io.*;
@@ -19,8 +19,7 @@ public class SockServer {
 
   static int port = 8888;
 
-
-  public static void main (String args[]) {
+  public static void main(String args[]) {
 
     if (args.length != 1) {
       System.out.println("Expected arguments: <port(int)>");
@@ -35,7 +34,7 @@ public class SockServer {
     }
 
     try {
-      //open socket
+      // open socket
       ServerSocket serv = new ServerSocket(port);
       System.out.println("Server ready for connections");
 
@@ -44,11 +43,11 @@ public class SockServer {
        *
        */
 
-
-      while (true){
+      while (true) {
         System.out.println("Server waiting for a connection");
         sock = serv.accept(); // blocking wait
         System.out.println("Client connected");
+        ArrayList<JSONObject> playlistSongs = new ArrayList<>();
 
         // setup the object reading channel
         in = new ObjectInputStream(sock.getInputStream());
@@ -90,10 +89,12 @@ public class SockServer {
             res = echo(req);
           } else if (req.getString("type").equals("add")) {
             res = add(req);
-          } else if (req.getString("type").equals("calculatemany")) {
-            res = calculatemany(req);
           } else if (req.getString("type").equals("stringconcatenation")) {
             res = concat(req);
+          } else if (req.getString("type").equals("calculatemany")) {
+            res = calculatemany(req);
+          } else if (req.getString("type").equals("playlist")) {
+            res = playlist(req, playlistSongs);
           } else if (req.getString("type").equals("analyzer")) {
             // Mystery service - discover the protocol
             res = MysteryService.processRequest(req);
@@ -105,22 +106,21 @@ public class SockServer {
         // if we are here - client has disconnected so close connection to socket
         overandout();
       }
-    } catch(Exception e) {
+    } catch (Exception e) {
       e.printStackTrace();
       overandout(); // close connection to socket upon error
     }
   }
 
-
   /**
    * Checks if a specific field exists
    *
    */
-  static JSONObject testField(JSONObject req, String key){
+  static JSONObject testField(JSONObject req, String key) {
     JSONObject res = new JSONObject();
 
     // field does not exist
-    if (!req.has(key)){
+    if (!req.has(key)) {
       res.put("ok", false);
       res.put("message", "Field " + key + " does not exist in request");
       return res;
@@ -129,11 +129,11 @@ public class SockServer {
   }
 
   // handles the simple echo request
-  static JSONObject echo(JSONObject req){
+  static JSONObject echo(JSONObject req) {
     System.out.println("Echo request: " + req.toString());
     JSONObject res = testField(req, "data");
     if (res.getBoolean("ok")) {
-      if (!req.get("data").getClass().getName().equals("java.lang.String")){
+      if (!req.get("data").getClass().getName().equals("java.lang.String")) {
         res.put("ok", false);
         res.put("message", "Field data needs to be of type: String");
         return res;
@@ -146,7 +146,7 @@ public class SockServer {
   }
 
   // handles the simple add request with two numbers
-  static JSONObject add(JSONObject req){
+  static JSONObject add(JSONObject req) {
     System.out.println("Add request: " + req.toString());
     JSONObject res1 = testField(req, "num1");
     if (!res1.getBoolean("ok")) {
@@ -163,14 +163,13 @@ public class SockServer {
     res.put("type", "add");
     try {
       res.put("result", req.getInt("num1") + req.getInt("num2"));
-    } catch (org.json.JSONException e){
+    } catch (org.json.JSONException e) {
       res.put("ok", false);
       res.put("message", "Field num1/num2 needs to be of type: int");
     }
     return res;
   }
 
-  
   // handles string concatenation
   static JSONObject concat(JSONObject req) {
     System.out.println("Concatenation request: " + req.toString());
@@ -195,7 +194,7 @@ public class SockServer {
   }
 
   // handles the calculatemany request with multiple operations
-  static JSONObject calculatemany(JSONObject req){
+  static JSONObject calculatemany(JSONObject req) {
     System.out.println("Calculate many request: " + req.toString());
     JSONObject res = new JSONObject();
 
@@ -215,7 +214,7 @@ public class SockServer {
     String operation = req.getString("operation").toLowerCase();
 
     // Check for empty array
-    if (array.length() == 0){
+    if (array.length() == 0) {
       res.put("ok", false);
       res.put("message", "Array 'numList' cannot be empty");
       return res;
@@ -224,16 +223,17 @@ public class SockServer {
     // Validate operation
     if (!operation.equals("add") && !operation.equals("multiply") && !operation.equals("average")) {
       res.put("ok", false);
-      res.put("message", "Invalid operation '" + req.getString("operation") + "'. Valid operations: add, multiply, average");
+      res.put("message",
+          "Invalid operation '" + req.getString("operation") + "'. Valid operations: add, multiply, average");
       return res;
     }
 
     // Extract integers from array
     int[] numbers = new int[array.length()];
-    for (int i = 0; i < array.length(); i++){
+    for (int i = 0; i < array.length(); i++) {
       try {
         numbers[i] = array.getInt(i);
-      } catch (org.json.JSONException e){
+      } catch (org.json.JSONException e) {
         res.put("ok", false);
         res.put("message", "Values in numList must be integers");
         return res;
@@ -273,11 +273,142 @@ public class SockServer {
     return res;
   }
 
+  // Handles playlist requests for the current client connection
+  static JSONObject playlist(JSONObject req, ArrayList<JSONObject> playlistSongs) {
+    System.out.println("Playlist request: " + req.toString());
 
-//  SOME GENERAL ERROR MESSAGES
+    JSONObject res = testField(req, "action");
+    if (!res.getBoolean("ok")) {
+      return res;
+    }
+
+    String action = req.getString("action");
+
+    // Add a song
+    if (action.equals("add")) {
+      res = testField(req, "song");
+      if (!res.getBoolean("ok")) {
+        return res;
+      }
+
+      res = testField(req, "artist");
+      if (!res.getBoolean("ok")) {
+        return res;
+      }
+
+      String song = req.getString("song").trim();
+      String artist = req.getString("artist").trim();
+
+      if (song.isEmpty()) {
+        res = new JSONObject();
+        res.put("ok", false);
+        res.put("message", "Field 'song' cannot be empty");
+        return res;
+      }
+
+      if (artist.isEmpty()) {
+        res = new JSONObject();
+        res.put("ok", false);
+        res.put("message", "Field 'artist' cannot be empty");
+        return res;
+      }
+
+      // Store both fields. Duplicate titles are allowed.
+      JSONObject songEntry = new JSONObject();
+      songEntry.put("song", song);
+      songEntry.put("artist", artist);
+      playlistSongs.add(songEntry);
+
+      res = new JSONObject();
+      res.put("type", "playlist");
+      res.put("ok", true);
+      res.put("action", "add");
+      res.put("songCount", playlistSongs.size());
+      res.put("message", "Added '" + song + "' by " + artist + " to playlist");
+      return res;
+
+      // Remove the first matching song title
+    } else if (action.equals("remove")) {
+      res = testField(req, "song");
+      if (!res.getBoolean("ok")) {
+        return res;
+      }
+
+      String song = req.getString("song").trim();
+
+      if (song.isEmpty()) {
+        res = new JSONObject();
+        res.put("ok", false);
+        res.put("message", "Field 'song' cannot be empty");
+        return res;
+      }
+
+      for (int i = 0; i < playlistSongs.size(); i++) {
+        JSONObject entry = playlistSongs.get(i);
+
+        if (entry.getString("song").equalsIgnoreCase(song)) {
+          playlistSongs.remove(i);
+
+          res = new JSONObject();
+          res.put("type", "playlist");
+          res.put("ok", true);
+          res.put("action", "remove");
+          res.put("songCount", playlistSongs.size());
+          res.put("message", "Removed '" + song + "' from playlist");
+          return res;
+        }
+      }
+
+      res = new JSONObject();
+      res.put("ok", false);
+      res.put("message", "Song '" + song + "' not found in playlist");
+      return res;
+
+      // List every song and artist
+    } else if (action.equals("list")) {
+      JSONArray songs = new JSONArray();
+
+      for (JSONObject entry : playlistSongs) {
+        // Return a copy so the response contains both fields.
+        JSONObject songEntry = new JSONObject();
+        songEntry.put("song", entry.getString("song"));
+        songEntry.put("artist", entry.getString("artist"));
+        songs.put(songEntry);
+      }
+
+      res = new JSONObject();
+      res.put("type", "playlist");
+      res.put("ok", true);
+      res.put("action", "list");
+      res.put("songs", songs);
+      res.put("songCount", playlistSongs.size());
+      return res;
+
+      // Clear the playlist
+    } else if (action.equals("clear")) {
+      playlistSongs.clear();
+
+      res = new JSONObject();
+      res.put("type", "playlist");
+      res.put("ok", true);
+      res.put("action", "clear");
+      res.put("message", "Playlist cleared");
+      return res;
+
+      // Reject unsupported actions
+    } else {
+      res = new JSONObject();
+      res.put("ok", false);
+      res.put("message", "Invalid action '" + action
+          + "'. Valid actions: add, remove, list, clear");
+      return res;
+    }
+  }
+
+  // SOME GENERAL ERROR MESSAGES
 
   // creates the error message for wrong type
-  static JSONObject wrongType(JSONObject req){
+  static JSONObject wrongType(JSONObject req) {
     System.out.println("Wrong type request: " + req.toString());
     JSONObject res = new JSONObject();
     res.put("ok", false);
@@ -286,7 +417,7 @@ public class SockServer {
   }
 
   // creates the error message for no given type
-  static JSONObject noType(JSONObject req){
+  static JSONObject noType(JSONObject req) {
     System.out.println("No type request: " + req.toString());
     JSONObject res = new JSONObject();
     res.put("ok", false);
@@ -311,15 +442,16 @@ public class SockServer {
     return new JSONObject();
   }
 
-
-// SENDING OUT REPSONSES, CLOSING CONNECTION
+  // SENDING OUT REPSONSES, CLOSING CONNECTION
   // sends the response and closes the connection between client and server.
   static void overandout() {
     try {
       os.close();
       in.close();
       sock.close();
-    } catch(Exception e) {e.printStackTrace();}
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
 
   }
 
@@ -330,7 +462,9 @@ public class SockServer {
       // make sure it wrote and doesn't get cached in a buffer
       os.flush();
 
-    } catch(Exception e) {e.printStackTrace();}
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
 
   }
 }
