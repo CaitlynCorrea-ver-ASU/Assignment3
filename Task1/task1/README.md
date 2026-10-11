@@ -96,6 +96,8 @@ Error response:
         "message" : <String> -- what went wrong
     }
 
+
+
 ### Add: ###
 Request:
 
@@ -131,14 +133,135 @@ Error response:
     }
 
 
-### CalculateMany: ###
-**TODO - Part A:** You need to document this protocol by:
-1. Reading the server implementation in SockServer.java
-2. Testing the service with various inputs (add the service to the client or write Unit Tests to test)
-3. Write the complete protocol specification here (follow the format of echo and add above)
-4. Document ALL possible error cases (hint: there are at least 4 different error cases)
 
-YOUR PROTOCOL DOCUMENTATION GOES HERE
+### CalculateMany: ###
+Request:
+
+    {
+        "type" : "calculatemany", -- type of request
+        "numList" : <Array of Integers>, -- list of numbers to perform calculations, must be seperated by a comma (Example: 1, 2, 3)
+        "operation" : <String> -- possible operations: "add", "multiply", or "average"
+    }
+
+Success Response for Add:
+
+    {
+        "sum": <int>,
+        "count": <int>,
+        "ok": true,
+        "type": "calculatemany",
+        "operation": "add"
+    }
+
+Success Response for Multiply:
+
+    {
+        "product": <int>,
+        "count": <int>,
+        "ok": true,
+        "type": "calculatemany",
+        "operation": "multiply"
+    }
+
+Success Response for Average:
+    {
+        "average": <double>,
+        "count": <int>,
+        "ok": true,
+        "type": "calculatemany",
+        "operation": "average"
+    }
+
+Error Response for Empty numList:
+
+    {
+        "ok": false,
+        "message": "Array 'numList' cannot be empty"
+    }
+
+Error Response for Invalid Operation:
+
+    {
+        "ok": false,
+        "message": "Invalid operation 'subtract'. Valid operations: add, multiply, average"
+    }
+
+Error Response for Non-integer Values in numList:
+
+    {
+        "ok": false,
+        "message": "Values in numList must be integers"
+    }
+
+Error Response for Missing numList:
+
+    {
+        "ok": false,
+        "message": "Field numList does not exist in request"
+    }
+
+Error Response for Missing operation:
+
+    {
+        "ok": false,
+        "message": "Field operation does not exist in request"
+    }
+
+Example Request and Response for Add:
+
+    Request:
+    {
+        "type": "calculatemany",
+        "numList": [1, 2, 3],
+        "operation": "add"
+    }
+
+    Response:
+    {
+        "sum": 6,
+        "count": 3,
+        "ok": true,
+        "type": "calculatemany",
+        "operation": "add"
+    }
+
+Example Request and Response for Multiply:
+
+    Request:
+    {
+        "type": "calculatemany",
+        "numList": [2, 3, 4],
+        "operation": "multiply"
+    }
+
+    Response:
+    {
+        "product": 24,
+        "count": 3,
+        "ok": true,
+        "type": "calculatemany",
+        "operation": "multiply"
+    }
+
+Example Request and Response for Average:
+
+    Request:
+    {
+        "type": "calculatemany",
+        "numList": [10, 20, 25],
+        "operation": "average"
+    }
+
+    Response:
+    {
+        "average": 18.33,
+        "count": 3,
+        "ok": true,
+        "type": "calculatemany",
+        "operation": "average"
+    }
+
+
 
 ### StringConcatenation: ###
 This service will concatenate two strings provided by the client. The client will send a request to the server with two strings to be concatenated.
@@ -178,6 +301,7 @@ Error response:
         "ok" : false,
         "message" : <String> -- error message about what went wrong
     }
+
 
 
 ### Currency: ###
