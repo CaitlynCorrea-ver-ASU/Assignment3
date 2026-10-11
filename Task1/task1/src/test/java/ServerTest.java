@@ -189,6 +189,45 @@ public class ServerTest {
     }
 
     @Test
+    public void currencyConversionRequest() throws Exception {
+        JSONObject req = new JSONObject();
+        req.put("type", "currency");
+        req.put("amount", 100.00);
+        req.put("from", "USD");
+        req.put("to", "EUR");
+
+        os.writeObject(req.toString());
+        os.flush();
+        String response = in.readUTF();
+
+        JSONObject res = new JSONObject(response);
+
+        assertTrue(res.getBoolean("ok"));
+        assertEquals("USD", res.getString("from"));
+        assertEquals("EUR", res.getString("to"));
+        assertEquals(92.46, res.getDouble("result"), 0.001);
+        assertEquals(0.92, res.getDouble("rate"), 0.001);
+    }
+
+    @Test
+    public void currencyInvalidCodeRequest() throws Exception {
+        JSONObject req = new JSONObject();
+        req.put("type", "currency");
+        req.put("amount", 100.00);
+        req.put("from", "XYZ");
+        req.put("to", "EUR");
+
+        os.writeObject(req.toString());
+        os.flush();
+        String response = in.readUTF();
+
+        JSONObject res = new JSONObject(response);
+
+        assertFalse(res.getBoolean("ok"));
+        assertTrue(res.getString("message").contains("from"));
+    }
+
+    @Test
     public void playlistAddAndListRequest() throws IOException {
         JSONObject addReq = new JSONObject();
         addReq.put("type", "playlist");
@@ -238,9 +277,7 @@ public class ServerTest {
         JSONObject res = new JSONObject(in.readUTF());
 
         assertFalse(res.getBoolean("ok"));
-        assertEquals(
-                "Song 'Missing Song' not found in playlist",
-                res.getString("message"));
+        assertEquals("Song 'Missing Song' not found in playlist",res.getString("message"));
     }
 
 }

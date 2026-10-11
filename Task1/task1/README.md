@@ -305,9 +305,7 @@ Error response:
 
 
 
-### Currency: ###
-**TODO - Part C (Option 1):** You need to implement this service following the protocol specification below.
-
+ok### Currency: ###
 This service converts amounts between currencies using fixed exchange rates.
 Supported currencies: USD, EUR, GBP.
 The client sends an amount and the source/target currencies, and the server performs the conversion.
@@ -367,8 +365,6 @@ Error response (negative amount):
 
 
 ### Playlist: ###
-**TODO - Part C (Option 2):** You need to implement this service following the protocol specification below.
-
 This service manages a playlist of songs. The client can add songs, remove songs, list the playlist contents, and clear the playlist. The playlist persists for the duration of the client connection.
 
 **Action: add**
@@ -468,7 +464,7 @@ Invalid action:
     {
         "ok" : false,
         "message" : "Invalid action '<action>'. Valid actions: add, remove, list, clear"
-    }
+    } 
 
 Empty song or artist (for add):
 

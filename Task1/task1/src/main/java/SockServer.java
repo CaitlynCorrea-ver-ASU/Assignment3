@@ -50,7 +50,9 @@ public class SockServer {
         ArrayList<JSONObject> playlistSongs = new ArrayList<>();
 
         // setup the object reading channel
+        System.out.println("Before creating ObjectInputStream");
         in = new ObjectInputStream(sock.getInputStream());
+        System.out.println("ObjectInputStream created");
 
         // get output channel
         OutputStream out = sock.getOutputStream();
@@ -63,6 +65,7 @@ public class SockServer {
           String s = "";
           try {
             s = (String) in.readObject(); // attempt to read string in from client
+            System.out.println("Received request: " + s);
           } catch (Exception e) { // catch rough disconnect
             System.out.println("Client disconnect");
             connected = false;
@@ -93,8 +96,11 @@ public class SockServer {
             res = concat(req);
           } else if (req.getString("type").equals("calculatemany")) {
             res = calculatemany(req);
+          } else if (req.getString("type").equals("currency")) {
+            res = currency(req);
           } else if (req.getString("type").equals("playlist")) {
             res = playlist(req, playlistSongs);
+            System.out.println("Currency response: " + res);
           } else if (req.getString("type").equals("analyzer")) {
             // Mystery service - discover the protocol
             res = MysteryService.processRequest(req);
@@ -271,6 +277,89 @@ public class SockServer {
     }
 
     return res;
+  }
+
+  static JSONObject currency(JSONObject req) {
+    JSONObject res = new JSONObject();
+    res.put("type", "currency");
+
+    // Validate amount exists and is numeric
+    if (!req.has("amount") || req.isNull("amount")) {
+      res.put("ok", false);
+      res.put("message", "Field 'amount' does not exist in request");
+      return res;
+    }
+
+    Object amountValue = req.get("amount");
+    if (!(amountValue instanceof Number)) {
+      res.put("ok", false);
+      res.put("message", "Field 'amount' must be a number");
+      return res;
+    }
+
+    double amount = ((Number) amountValue).doubleValue();
+
+    if (amount < 0) {
+      res.put("ok", false);
+      res.put("message", "Field 'amount' cannot be negative");
+      return res;
+    }
+
+    // Validate source currency
+    if (!req.has("from") || req.isNull("from")
+        || !isValidCurrency(req.opt("from"))) {
+      res.put("ok", false);
+      res.put("message", "Field 'from' must be one of: USD, EUR, GBP");
+      return res;
+    }
+
+    // Validate target currency
+    if (!req.has("to") || req.isNull("to")
+        || !isValidCurrency(req.opt("to"))) {
+      res.put("ok", false);
+      res.put("message", "Field 'to' must be one of: USD, EUR, GBP");
+      return res;
+    }
+
+    String from = req.getString("from");
+    String to = req.getString("to");
+
+    double fromRate = currencyRate(from);
+    double toRate = currencyRate(to);
+    double rate = toRate / fromRate;
+    double result = Math.round(amount * rate * 100.0) / 100.0;
+
+    res.put("ok", true);
+    res.put("from", from);
+    res.put("to", to);
+    res.put("amount", amount);
+    res.put("result", result);
+    res.put("rate", rate);
+
+    return res;
+  }
+
+  static boolean isValidCurrency(Object currency) {
+    if (!(currency instanceof String)) {
+      return false;
+    }
+
+    return currency.equals("USD")
+        || currency.equals("EUR")
+        || currency.equals("GBP");
+  }
+
+  static double currencyRate(String currency) {
+    switch (currency) {
+      case "USD":
+        return 1.0;
+      case "EUR":
+        return 0.92;
+      case "GBP":
+        return 0.79;
+      default:
+        throw new IllegalArgumentException("Unsupported currency");
+    }
   }
 
   // Handles playlist requests for the current client connection

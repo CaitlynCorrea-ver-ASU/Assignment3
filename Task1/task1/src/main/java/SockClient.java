@@ -40,7 +40,7 @@ class SockClient {
       boolean requesting = true;
       while (requesting) {
         System.out.println(
-            "What would you like to do: 1 - echo, 2 - add, 3 - string concatenation, 4 - calculate many, 5 - playlist manager, 0 - quit");
+            "What would you like to do: 1 - echo, 2 - add, 3 - string concatenation, 4 - calculate many, 5 - currency converter, 6 - playlist manager, 7 - analyzer, 0 - quit");
         Scanner scanner = new Scanner(System.in);
         int choice = Integer.parseInt(scanner.nextLine());
         // You can assume the user put in a correct input, you do not need to handle
@@ -104,8 +104,31 @@ class SockClient {
             json.put("numList", numList);
             json.put("operation", operation);
             break;
-
           case 5:
+            System.out.println("Currency Converter");
+            System.out.println("Enter amount to convert:");
+            String amountInput = scanner.nextLine().trim();
+
+            double amount;
+            try {
+              amount = Double.parseDouble(amountInput);
+            } catch (NumberFormatException e) {
+              System.out.println("Invalid amount. Please enter a number.");
+              break;
+            }
+
+            System.out.println("Enter source currency (USD, EUR, GBP):");
+            String from = scanner.nextLine().trim().toUpperCase();
+
+            System.out.println("Enter target currency (USD, EUR, GBP):");
+            String to = scanner.nextLine().trim().toUpperCase();
+
+            json.put("type", "currency");
+            json.put("amount", amount);
+            json.put("from", from);
+            json.put("to", to);
+            break;
+          case 6:
             System.out.println("Playlist Manager");
             System.out.println("Choose action: add, remove, list, clear");
             String action = scanner.nextLine().trim().toLowerCase();
@@ -127,6 +150,22 @@ class SockClient {
               String song = scanner.nextLine();
 
               json.put("song", song);
+            }
+            break;
+          case 7:
+            System.out.println("Choose analyzer, enter an action (options: wordcount, charcount, search)");
+            String analyzerAction = scanner.nextLine().trim();
+            System.out.println("Enter text:");
+            String analyzerText = scanner.nextLine();
+
+            json.put("type", "analyzer");
+            json.put("action", analyzerAction);
+            json.put("text", analyzerText);
+
+            if (analyzerAction.equals("search")) {
+              System.out.println("Enter text to find:");
+              String analyzerFind = scanner.nextLine();
+              json.put("find", analyzerFind);
             }
             break;
         }
@@ -198,6 +237,8 @@ class SockClient {
             } else if (action.equals("clear")) {
               System.out.println(res.getString("message"));
             }
+          } else if (type.equals("analyzer")) {
+            System.out.println(res.toString());
           } else {
             System.out.println(res.getInt("result"));
           }
