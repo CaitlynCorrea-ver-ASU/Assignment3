@@ -75,7 +75,7 @@ class SockClient {
             System.out.println("Enter second string:");
             String str2 = scanner.nextLine();
             json.put("type", "stringconcatenation");
-            json.put("str1", str1);
+            json.put("string1", str1);
             json.put("string2", str2);
             break;
 
@@ -128,6 +128,10 @@ class SockClient {
 
           if (type.equals("echo")) {
             System.out.println(res.getString("echo"));
+
+          } else if (type.equals("stringconcatenation")) {
+            System.out.println(res.getString("result"));
+
           } else if (type.equals("calculatemany")) {
             String operation = res.getString("operation");
 
