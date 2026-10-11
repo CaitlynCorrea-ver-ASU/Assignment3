@@ -1,5 +1,7 @@
 apply plugin: 'java'
 
+layout.buildDirectory = file("C:/Temp/assignment3-build")
+
 description = "Client Server Socket Example"
 
 repositories {

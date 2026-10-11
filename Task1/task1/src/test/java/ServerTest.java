@@ -4,7 +4,6 @@ import org.json.JSONObject;
 import java.io.*;
 import java.net.Socket;
 
-
 public class ServerTest {
 
     Socket sock;
@@ -13,8 +12,8 @@ public class ServerTest {
 
     DataInputStream in;
 
-
-    // Establishing a connection to the server, make sure you start the server on localhost and 8888
+    // Establishing a connection to the server, make sure you start the server on
+    // localhost and 8888
     @org.junit.Before
     public void setUp() throws Exception {
         // Establish connection to server and create in/out streams
@@ -32,11 +31,13 @@ public class ServerTest {
 
     @org.junit.After
     public void close() throws Exception {
-        if (out != null)  out.close();
-        if (sock != null) sock.close();
+        if (out != null)
+            out.close();
+        if (sock != null)
+            sock.close();
     }
 
-        @Test
+    @Test
     public void addRequest() throws IOException {
         // create a correct req for server
         JSONObject req = new JSONObject();
@@ -182,8 +183,64 @@ public class ServerTest {
         assertFalse(res.getBoolean("ok"));
         assertEquals("req not JSON", res.getString("message"));
 
-        // calling the other test to make sure server continues to work and the "continue" does what it is supposed to do
+        // calling the other test to make sure server continues to work and the
+        // "continue" does what it is supposed to do
         addRequest();
+    }
+
+    @Test
+    public void playlistAddAndListRequest() throws IOException {
+        JSONObject addReq = new JSONObject();
+        addReq.put("type", "playlist");
+        addReq.put("action", "add");
+        addReq.put("song", "Test Song");
+        addReq.put("artist", "Test Artist");
+
+        os.writeObject(addReq.toString());
+        os.flush();
+
+        JSONObject addRes = new JSONObject(in.readUTF());
+
+        assertTrue(addRes.getBoolean("ok"));
+        assertEquals("playlist", addRes.getString("type"));
+        assertEquals("add", addRes.getString("action"));
+        assertEquals(1, addRes.getInt("songCount"));
+
+        JSONObject listReq = new JSONObject();
+        listReq.put("type", "playlist");
+        listReq.put("action", "list");
+
+        os.writeObject(listReq.toString());
+        os.flush();
+
+        JSONObject listRes = new JSONObject(in.readUTF());
+
+        assertTrue(listRes.getBoolean("ok"));
+        assertEquals("list", listRes.getString("action"));
+        assertEquals(1, listRes.getInt("songCount"));
+
+        org.json.JSONArray songs = listRes.getJSONArray("songs");
+        assertEquals(1, songs.length());
+        assertEquals("Test Song", songs.getJSONObject(0).getString("song"));
+        assertEquals("Test Artist", songs.getJSONObject(0).getString("artist"));
+    }
+
+    @Test
+    public void playlistRemoveMissingSongRequest() throws IOException {
+        JSONObject req = new JSONObject();
+        req.put("type", "playlist");
+        req.put("action", "remove");
+        req.put("song", "Missing Song");
+
+        os.writeObject(req.toString());
+        os.flush();
+
+        JSONObject res = new JSONObject(in.readUTF());
+
+        assertFalse(res.getBoolean("ok"));
+        assertEquals(
+                "Song 'Missing Song' not found in playlist",
+                res.getString("message"));
     }
 
 }
